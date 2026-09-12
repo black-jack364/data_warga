@@ -426,13 +426,16 @@
             }
 
             showToast("Mensinkronkan data dengan Google Sheet...");
-            fetch(API_URL + "?action=get")
+            fetch(API_URL, { redirect: "follow" })
                 .then(res => res.json())
                 .then(res => {
                     if (res.status === "success" && res.data) {
                         dataWarga = res.data;
                         filterData();
                         showToast("Data berhasil disinkronkan dari Sheet!");
+                    } else {
+                        showToast("Gagal memuat data dari Sheet. Menggunakan cache lokal.");
+                        filterData();
                     }
                 })
                 .catch(err => {
@@ -651,12 +654,16 @@
                 renderDashboard();
                 showToast(`Status <strong>${escapeHtml(warga.nama)}</strong> diubah menjadi <strong>${newStatus}</strong>`);
 
-                // Kirim update ke Google Sheet jika API tersedia
+                // Kirim update ke Google Sheet
                 if (API_URL && !API_URL.includes("MASUKKAN")) {
                     fetch(API_URL, {
                         method: "POST",
+                        redirect: "follow",
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
                         body: JSON.stringify({ action: "updateStatus", id: id, statusPemilih: newStatus })
-                    }).catch(err => console.error("Gagal sync status ke sheet:", err));
+                    })
+                    .then(res => res.json())
+                    .catch(err => console.error("Gagal sync status ke sheet:", err));
                 }
             }
         }
@@ -873,8 +880,12 @@
             if (API_URL && !API_URL.includes("MASUKKAN")) {
                 fetch(API_URL, {
                     method: "POST",
+                    redirect: "follow",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
                     body: JSON.stringify({ action: "add", ...newWarga })
-                }).catch(err => console.error("Gagal simpan ke sheet:", err));
+                })
+                .then(res => res.json())
+                .catch(err => console.error("Gagal simpan ke sheet:", err));
             }
         }
 
@@ -890,7 +901,7 @@
 
                 const pageWidth = doc.internal.pageSize.getWidth();
                 const pageHeight = doc.internal.pageSize.getHeight();
-                const marginSize = 20; // 2 cm
+                const marginSize = 20;
 
                 doc.setFontSize(14);
                 doc.setFont("helvetica", "bold");
